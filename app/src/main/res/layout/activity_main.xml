@@ -22,10 +22,11 @@
             android:layout_height="wrap_content"
             android:text="Erişilebilirlik ayarlarını aç" />
 
+        <!-- ===== Bugün ===== -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="20dp"
             android:gravity="center"
             android:text="Bugün kaydırılan video"
             android:textSize="16sp" />
@@ -47,34 +48,81 @@
             android:textSize="16sp" />
 
         <TextView
-            android:id="@+id/tvTotal"
+            android:id="@+id/tvTodayTime"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:gravity="center"
-            android:textSize="14sp" />
+            android:textSize="15sp" />
+
+        <!-- ===== İstatistikler ===== -->
+        <TextView
+            style="@style/Section"
+            android:text="İstatistikler" />
 
         <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="Son 7 gün"
-            android:textSize="16sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/tvWeek"
+            android:id="@+id/tvStats"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:fontFamily="monospace"
             android:lineSpacingExtra="4dp"
             android:textSize="14sp" />
 
+        <!-- ===== 30 gün grafiği ===== -->
+        <TextView
+            style="@style/Section"
+            android:text="Son 30 gün" />
+
+        <com.med.shortscounter.BarChartView
+            android:id="@+id/chart30"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <!-- ===== Saatlik dağılım ===== -->
+        <TextView
+            style="@style/Section"
+            android:text="Saatlere göre (son 30 gün)" />
+
+        <com.med.shortscounter.BarChartView
+            android:id="@+id/chartHours"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <TextView
+            android:id="@+id/tvPeak"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="14sp" />
+
+        <!-- ===== Geçmiş ===== -->
+        <TextView
+            style="@style/Section"
+            android:text="Geçmiş" />
+
+        <TextView
+            android:id="@+id/tvHistory"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:lineSpacingExtra="3dp"
+            android:textIsSelectable="true"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/btnHistoryMore"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Tüm geçmişi göster" />
+
+        <!-- ===== Ayarlar ===== -->
+        <TextView
+            style="@style/Section"
+            android:text="Ayarlar" />
+
         <Switch
             android:id="@+id/swOverlay"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
             android:text="Instagram/YouTube'da ekranda sayaç göster"
             android:textSize="15sp" />
 

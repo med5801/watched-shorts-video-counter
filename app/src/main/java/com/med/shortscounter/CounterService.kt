@@ -8,6 +8,7 @@ import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.WindowManager
@@ -66,6 +67,12 @@ class CounterService : AccessibilityService() {
     private var screenH = 0
     private var foregroundPkg: String? = null
 
+    // İzleme süresi takibi: Reels/Shorts'taki iki kaydırma arası süre
+    // (en fazla MAX_GAP_SEC) izleme süresi olarak eklenir.
+    private var lastActiveAt = 0L
+    private var lastActivePkg: String? = null
+    private val MAX_GAP_SEC = 120L
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         wm = getSystemService(WindowManager::class.java)
@@ -86,6 +93,12 @@ class CounterService : AccessibilityService() {
     private fun onForeground(pkg: String) {
         if (pkg in IGNORE_FG || pkg == packageName) return
         if (pkg != foregroundPkg) {
+            // Reels/Shorts'tan çıkıldı: son videonun izlenme süresini ekle
+            if (lastActivePkg != null && pkg != lastActivePkg) {
+                addWatchTime(lastActivePkg!!)
+                lastActiveAt = 0L
+                lastActivePkg = null
+            }
             foregroundPkg = pkg
             updateOverlay()
         }
@@ -169,9 +182,25 @@ class CounterService : AccessibilityService() {
         Stats.log(this, "$shortPkg id=${t.id.ifEmpty { "?" }} from=$from to=$to dy=$dy -> +$n")
 
         if (n > 0) {
-            Stats.add(this, if (t.pkg == PKG_IG) Stats.APP_IG else Stats.APP_YT, n)
+            Stats.add(this, appKey(t.pkg), n)
+            markActive(t.pkg)
             updateOverlay()
         }
+    }
+
+    private fun appKey(pkg: String) = if (pkg == PKG_IG) Stats.APP_IG else Stats.APP_YT
+
+    /** Yeni videoya geçildi: önceki videoda geçen süreyi ekle, sayacı yeniden başlat. */
+    private fun markActive(pkg: String) {
+        if (lastActivePkg == pkg && lastActiveAt > 0) addWatchTime(pkg)
+        lastActiveAt = SystemClock.elapsedRealtime()
+        lastActivePkg = pkg
+    }
+
+    private fun addWatchTime(pkg: String) {
+        if (lastActiveAt <= 0) return
+        val sec = ((SystemClock.elapsedRealtime() - lastActiveAt) / 1000).coerceIn(0, MAX_GAP_SEC)
+        Stats.addTime(this, appKey(pkg), sec)
     }
 
     // ---------------- Ekrandaki küçük sayaç ----------------
