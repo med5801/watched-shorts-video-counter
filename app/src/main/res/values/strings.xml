@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Shorts Sayacı</string>
+    <string name="service_label">Shorts Sayacı</string>
+    <string name="service_desc">Instagram Reels ve YouTube Shorts\'ta kaç video kaydırdığını sayar. Ekran içeriğini kaydetmez, sadece kaydırma olaylarını sayar.</string>
+</resources>

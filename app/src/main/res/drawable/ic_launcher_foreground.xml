@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- telefon gövdesi -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M40,28h28a4,4 0,0 1,4 4v44a4,4 0,0 1,-4 4h-28a4,4 0,0 1,-4 -4v-44a4,4 0,0 1,4 -4z" />
+    <!-- oynat üçgeni -->
+    <path
+        android:fillColor="#E53935"
+        android:pathData="M49,44L62,54L49,64Z" />
+</vector>
