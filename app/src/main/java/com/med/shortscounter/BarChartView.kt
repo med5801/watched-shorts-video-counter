@@ -3,7 +3,6 @@ package com.med.shortscounter
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
 import android.util.AttributeSet
@@ -25,17 +24,26 @@ class BarChartView @JvmOverloads constructor(
     private var tips: Array<String> = emptyArray()
     private var selected = -1
 
-    private val barPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#EF9A9A") }
-    private val hiPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#E53935") }
+    private val barPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = C.ACCENT_DIM }
+    private val hiPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = C.ACCENT }
     private val axisPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#BDBDBD"); strokeWidth = dp(1f)
+        color = C.LINE; strokeWidth = dp(1f)
     }
     private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#757575"); textSize = sp(10f); textAlign = Paint.Align.CENTER
+        color = C.SUB; textSize = sp(10f); textAlign = Paint.Align.CENTER
     }
     private val tipPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#212121"); textSize = sp(12f); textAlign = Paint.Align.CENTER
+        color = C.TEXT; textSize = sp(12f); textAlign = Paint.Align.CENTER
         isFakeBoldText = true
+    }
+
+    /** Hiçbir çubuk seçili değilken üstte yazan metin (null = varsayılan). */
+    var defaultTip: String? = null
+
+    fun setBarColors(normal: Int, highlightColor: Int) {
+        barPaint.color = normal
+        hiPaint.color = highlightColor
+        invalidate()
     }
     private val rect = RectF()
 
@@ -82,7 +90,7 @@ class BarChartView @JvmOverloads constructor(
             val hgt = if (v == 0) 0f else max(dp(2f), chartH * v / maxV)
             rect.set(left, bottom - hgt, right, bottom)
             val paint = if (i == selected || (selected < 0 && i == highlight)) hiPaint else barPaint
-            canvas.drawRoundRect(rect, dp(2f), dp(2f), paint)
+            canvas.drawRoundRect(rect, dp(3f), dp(3f), paint)
 
             val lab = labels.getOrNull(i) ?: ""
             if (lab.isNotEmpty()) {
@@ -95,7 +103,7 @@ class BarChartView @JvmOverloads constructor(
         val text = if (showIdx >= 0) {
             tips.getOrNull(showIdx) ?: values[showIdx].toString()
         } else {
-            "en yüksek: $maxV  •  çubuğa dokun"
+            defaultTip ?: "en yüksek: $maxV  •  çubuğa dokun"
         }
         var x = if (showIdx >= 0) (showIdx + 0.5f) * slot else width / 2f
         val half = tipPaint.measureText(text) / 2

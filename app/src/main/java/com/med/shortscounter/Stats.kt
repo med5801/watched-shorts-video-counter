@@ -77,23 +77,75 @@ object Stats {
         if (sec <= 0) return
         val p = stats(c)
         val d = today()
+        val hk = "ht_${d}_${LocalTime.now().hour}"
         p.edit()
             .putLong(timeKey(d), p.getLong(timeKey(d), 0) + sec)
             .putLong(timeKey(d, app), p.getLong(timeKey(d, app), 0) + sec)
+            .putLong(hk, p.getLong(hk, 0) + sec)
             .putLong("time_total", p.getLong("time_total", 0) + sec)
             .apply()
     }
+
+    fun hourTime(c: Context, date: String, hour: Int): Long =
+        stats(c).getLong("ht_${date}_$hour", 0)
+
+    // ---------------- Video başına izleme süresi dağılımı ----------------
+    // (v1.2'den itibaren tutulur)
+
+    val BUCKET_LABELS = arrayOf("< 2 sn", "2–5 sn", "5–15 sn", "15–30 sn", "30–60 sn", "60 sn +")
+    val BUCKETS = BUCKET_LABELS.size
+
+    fun bucketOf(sec: Long): Int = when {
+        sec < 2 -> 0
+        sec < 5 -> 1
+        sec < 15 -> 2
+        sec < 30 -> 3
+        sec < 60 -> 4
+        else -> 5
+    }
+
+    fun addBucket(c: Context, b: Int) {
+        val p = stats(c)
+        val k = "b_${today()}_$b"
+        p.edit().putInt(k, p.getInt(k, 0) + 1).apply()
+    }
+
+    fun bucket(c: Context, date: String, b: Int): Int = stats(c).getInt("b_${date}_$b", 0)
+
+    // ---------------- Oturumlar ----------------
+    // Oturum: arada 3 dakikadan uzun ara olmadan art arda kaydırma.
+
+    fun startSession(c: Context) {
+        val p = stats(c)
+        val k = "s_${today()}"
+        p.edit().putInt(k, p.getInt(k, 0) + 1).apply()
+    }
+
+    fun updateSessionMax(c: Context, sec: Long, videos: Int) {
+        val p = stats(c)
+        val d = today()
+        val e = p.edit()
+        var changed = false
+        if (sec > p.getLong("smax_$d", 0)) { e.putLong("smax_$d", sec); changed = true }
+        if (videos > p.getInt("svmax_$d", 0)) { e.putInt("svmax_$d", videos); changed = true }
+        if (changed) e.apply()
+    }
+
+    fun sessions(c: Context, date: String): Int = stats(c).getInt("s_$date", 0)
+    fun sessionMax(c: Context, date: String): Long = stats(c).getLong("smax_$date", 0)
+    fun sessionMaxVideos(c: Context, date: String): Int = stats(c).getInt("svmax_$date", 0)
 
     fun time(c: Context, date: String, app: String? = null): Long =
         stats(c).getLong(timeKey(date, app), 0)
 
     fun timeTotal(c: Context): Long = stats(c).getLong("time_total", 0)
 
-    /** 75 sn -> "1 dk", 3900 sn -> "1 sa 5 dk" */
+    /** 45 -> "45 sn", 75 -> "1 dk", 3900 -> "1 sa 5 dk" */
     fun fmtTime(sec: Long): String {
         val m = sec / 60
         return when {
-            sec in 1L..59L -> "<1 dk"
+            sec <= 0 -> "0 dk"
+            sec < 60 -> "$sec sn"
             m < 60 -> "$m dk"
             else -> "${m / 60} sa ${m % 60} dk"
         }
@@ -117,7 +169,12 @@ object Stats {
             .remove(timeKey(d))
             .remove(timeKey(d, APP_IG))
             .remove(timeKey(d, APP_YT))
-        for (h in 0..23) e.remove(hourKey(d, h))
+        for (h in 0..23) {
+            e.remove(hourKey(d, h))
+            e.remove("ht_${d}_$h")
+        }
+        for (b in 0 until BUCKETS) e.remove("b_${d}_$b")
+        e.remove("s_$d").remove("smax_$d").remove("svmax_$d")
         e.apply()
     }
 

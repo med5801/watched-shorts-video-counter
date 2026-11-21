@@ -73,6 +73,12 @@ class CounterService : AccessibilityService() {
     private var lastActivePkg: String? = null
     private val MAX_GAP_SEC = 120L
 
+    // Oturum takibi: 3 dakikadan uzun ara verilince yeni oturum başlar
+    private val SESSION_GAP_MS = 180_000L
+    private var sessionEndAt = 0L
+    private var sessionSec = 0L
+    private var sessionVideos = 0
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         wm = getSystemService(WindowManager::class.java)
@@ -95,7 +101,9 @@ class CounterService : AccessibilityService() {
         if (pkg != foregroundPkg) {
             // Reels/Shorts'tan çıkıldı: son videonun izlenme süresini ekle
             if (lastActivePkg != null && pkg != lastActivePkg) {
-                addWatchTime(lastActivePkg!!)
+                finishVideo(lastActivePkg!!)
+                Stats.updateSessionMax(this, sessionSec, sessionVideos)
+                sessionEndAt = SystemClock.elapsedRealtime()
                 lastActiveAt = 0L
                 lastActivePkg = null
             }
@@ -183,24 +191,47 @@ class CounterService : AccessibilityService() {
 
         if (n > 0) {
             Stats.add(this, appKey(t.pkg), n)
-            markActive(t.pkg)
+            markActive(t.pkg, n)
             updateOverlay()
         }
     }
 
     private fun appKey(pkg: String) = if (pkg == PKG_IG) Stats.APP_IG else Stats.APP_YT
 
-    /** Yeni videoya geçildi: önceki videoda geçen süreyi ekle, sayacı yeniden başlat. */
-    private fun markActive(pkg: String) {
-        if (lastActivePkg == pkg && lastActiveAt > 0) addWatchTime(pkg)
-        lastActiveAt = SystemClock.elapsedRealtime()
+    /**
+     * Yeni videoya geçildi: önceki videoda geçen süreyi ve süre dilimini kaydet,
+     * oturumu güncelle, süreyi yeniden başlat.
+     */
+    private fun markActive(pkg: String, n: Int) {
+        val now = SystemClock.elapsedRealtime()
+        var newSession: Boolean
+        if (lastActivePkg == pkg && lastActiveAt > 0) {
+            newSession = now - lastActiveAt > SESSION_GAP_MS
+            finishVideo(pkg)
+        } else {
+            newSession = sessionEndAt == 0L || now - sessionEndAt > SESSION_GAP_MS
+        }
+        if (newSession) {
+            Stats.updateSessionMax(this, sessionSec, sessionVideos)
+            Stats.startSession(this)
+            sessionSec = 0
+            sessionVideos = 0
+        }
+        sessionVideos += n
+        Stats.updateSessionMax(this, sessionSec, sessionVideos)
+        sessionEndAt = now
+        lastActiveAt = now
         lastActivePkg = pkg
     }
 
-    private fun addWatchTime(pkg: String) {
+    /** Ekrandaki videonun izlenme süresini ekle (en fazla MAX_GAP_SEC). */
+    private fun finishVideo(pkg: String) {
         if (lastActiveAt <= 0) return
-        val sec = ((SystemClock.elapsedRealtime() - lastActiveAt) / 1000).coerceIn(0, MAX_GAP_SEC)
+        val raw = (SystemClock.elapsedRealtime() - lastActiveAt) / 1000
+        val sec = raw.coerceIn(0, MAX_GAP_SEC)
         Stats.addTime(this, appKey(pkg), sec)
+        Stats.addBucket(this, Stats.bucketOf(raw))
+        sessionSec += sec
     }
 
     // ---------------- Ekrandaki küçük sayaç ----------------
