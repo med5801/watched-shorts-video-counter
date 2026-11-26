@@ -71,6 +71,11 @@ class MainActivity : Activity() {
 
     private var showAllHistory = false
 
+    // Sekmeler
+    private val tabs = ArrayList<TextView>()
+    private lateinit var statsBox: LinearLayout
+    private lateinit var lbPage: LeaderboardPage
+
     private val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
         runOnUiThread { refresh() }
     }
@@ -111,17 +116,44 @@ class MainActivity : Activity() {
 
         buildHeader(content)
         buildWarn(content)
-        buildHero(content)
-        buildRange(content)
-        buildTiles(content)
-        buildDaily(content)
-        buildHours(content)
-        buildWeek(content)
-        buildDist(content)
-        buildInsights(content)
-        buildHistory(content)
-        buildSettings(content)
-        buildDebug(content)
+        buildTabs(content)
+
+        statsBox = ui.vbox()
+        content.addView(statsBox)
+        buildHero(statsBox)
+        buildRange(statsBox)
+        buildTiles(statsBox)
+        buildDaily(statsBox)
+        buildHours(statsBox)
+        buildWeek(statsBox)
+        buildDist(statsBox)
+        buildInsights(statsBox)
+        buildHistory(statsBox)
+        buildSettings(statsBox)
+        buildDebug(statsBox)
+
+        lbPage = LeaderboardPage(this, ui)
+        content.addView(lbPage.root)
+    }
+
+    private fun buildTabs(parent: LinearLayout) {
+        val bar = ui.hbox().apply {
+            background = ui.round(C.CARD, 18)
+            setPadding(ui.dp(4), ui.dp(4), ui.dp(4), ui.dp(4))
+        }
+        listOf("📊  İstatistikler", "🏆  Sıralama").forEachIndexed { i, label ->
+            val t = ui.text(14f, C.SUB, true, label).apply {
+                gravity = Gravity.CENTER
+                setPadding(0, ui.dp(11), 0, ui.dp(11))
+                setOnClickListener {
+                    Stats.settings(this@MainActivity).edit().putInt("tab", i).apply()
+                    refresh()
+                }
+            }
+            tabs.add(t)
+            bar.addView(t, ui.weight1())
+        }
+        parent.addView(bar, ui.matchWrap(14))
     }
 
     @Suppress("DEPRECATION")
@@ -470,6 +502,19 @@ class MainActivity : Activity() {
         pill.text = if (on) "● AKTİF" else "● KAPALI"
         pill.background = ui.round(if (on) C.GREEN else C.AMBER, 20)
         warnCard.visibility = if (on) View.GONE else View.VISIBLE
+
+        val tab = Stats.settings(this).getInt("tab", 0)
+        tabs.forEachIndexed { i, t ->
+            val sel = i == tab
+            t.setTextColor(if (sel) C.TEXT else C.SUB)
+            t.background = if (sel) ui.round(C.ACCENT, 14) else null
+        }
+        statsBox.visibility = if (tab == 0) View.VISIBLE else View.GONE
+        lbPage.root.visibility = if (tab == 1) View.VISIBLE else View.GONE
+        if (tab == 1) {
+            lbPage.render()
+            return
+        }
 
         val tracked = trackedDays()
         val all = agg(tracked)
