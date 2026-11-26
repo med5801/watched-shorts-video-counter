@@ -1,0 +1,49 @@
+name: Sunucu testi
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Firebase uçtan uca test (anonim giriş, yazma, okuma, silme)
+        env:
+          KEY: AIzaSyA0jKHDRDv2mGeZO3ng-76dte2JqwbwCeg
+          PID: shorts-sayaci-58c06
+        run: |
+          set -e
+          BASE="https://firestore.googleapis.com/v1/projects/$PID/databases/(default)/documents"
+
+          echo "== 1) Anonim giriş"
+          R=$(curl -s -X POST "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=$KEY" \
+                -H 'Content-Type: application/json' -d '{"returnSecureToken":true}')
+          TOK=$(echo "$R" | jq -r .idToken); UID_=$(echo "$R" | jq -r .localId)
+          if [ "$TOK" = "null" ]; then echo "$R"; exit 1; fi
+          echo "OK uid=$UID_"
+
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          BODY=$(jq -n --arg t "$NOW" '{fields:{
+            name:{stringValue:"test"}, videos:{integerValue:"10"}, time:{integerValue:"50"},
+            timedVideos:{integerValue:"10"}, days:{integerValue:"1"}, bestDay:{integerValue:"10"},
+            sessMax:{integerValue:"50"}, sessMaxVideos:{integerValue:"10"}, last7:{integerValue:"10"},
+            last7Time:{integerValue:"50"}, fastPct:{integerValue:"0"}, updatedAt:{timestampValue:$t}}}')
+
+          echo "== 2) Kendi kaydını yaz (izin verilmeli)"
+          C=$(curl -s -o /tmp/w.json -w '%{http_code}' -X PATCH "$BASE/users/$UID_?key=$KEY" \
+                -H "Authorization: Bearer $TOK" -H 'Content-Type: application/json' -d "$BODY")
+          echo "HTTP $C"; [ "$C" = 200 ] || { cat /tmp/w.json; exit 1; }
+
+          echo "== 3) Başkasının kaydını yaz (reddedilmeli)"
+          C=$(curl -s -o /dev/null -w '%{http_code}' -X PATCH "$BASE/users/baskasi123?key=$KEY" \
+                -H "Authorization: Bearer $TOK" -H 'Content-Type: application/json' -d "$BODY")
+          echo "HTTP $C"; [ "$C" = 403 ] || exit 1
+
+          echo "== 4) Listeyi oku (girişsiz)"
+          C=$(curl -s -o /tmp/l.json -w '%{http_code}' "$BASE/users?pageSize=300&key=$KEY")
+          echo "HTTP $C, kayıt sayısı: $(jq '.documents | length' /tmp/l.json)"; [ "$C" = 200 ] || { cat /tmp/l.json; exit 1; }
+
+          echo "== 5) Test kaydını sil"
+          C=$(curl -s -o /dev/null -w '%{http_code}' -X DELETE "$BASE/users/$UID_?key=$KEY" -H "Authorization: Bearer $TOK")
+          echo "HTTP $C"; [ "$C" = 200 ] || exit 1
+          echo "TÜM TESTLER GEÇTİ"
