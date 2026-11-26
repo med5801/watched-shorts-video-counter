@@ -1,27 +1,43 @@
 # Shorts Sayacı
 
-Instagram Reels ve YouTube Shorts'ta kaç video kaydırdığını sayan Android uygulaması. Hızlı geçtiğin videolar da sayılır.
+Instagram Reels ve YouTube Shorts'ta kaç video kaydırdığını sayan Android uygulaması. Hızlı geçtiğin videolar da sayılır. Detaylı istatistikler ve arkadaşlarınla isteğe bağlı online sıralama içerir.
 
-## Kurulum (telefondan)
+📥 **İndir:** [Releases → en son sürüm → `ShortsSayaci.apk`](../../releases/latest) · 📝 [Değişiklik günlüğü](CHANGELOG.md)
 
-1. Bu repoda **Releases → en son derleme → `ShortsSayaci.apk`** dosyasını indir.
-2. APK'yı aç ve kur. Telefon "bilinmeyen kaynak" izni isterse ver.
-3. Uygulamayı aç ve **Erişilebilirlik ayarlarını aç** düğmesine bas. Açılan ekranda *Shorts Sayacı*'nı etkinleştir.
-   - Seçenek gri/kilitliyse **Ayarlar → Uygulamalar → Shorts Sayacı → ⋮ → Kısıtlanmış ayarlara izin ver** adımlarını izle, sonra tekrar dene.
-4. Instagram veya YouTube'a gir. Sol üstte sayaç görünür.
+## Özellikler
+
+**📊 İstatistikler**
+- Bugünün sayısı, dünle ve ortalamayla karşılaştırma, Instagram/YouTube oranı
+- 7 gün / 30 gün / 90 gün / Tümü aralık seçici
+- Toplam video ve süre, günlük ortalama, video başına süre, kaydırma hızı
+- Oturumlar ve en uzun oturum, hızlı geçiş oranı
+- Grafikler: günlük kaydırma, saatlere göre, haftanın günleri, video başına izleme süresi dağılımı
+- Öne çıkanlar ve aylara göre geçmiş
+
+**🏆 Sıralama**
+- Butona bastığında özetin gönderilir ve liste bir kez çekilir. Arka planda veri akışı yok.
+- Takma ad bir kez seçilir. Hesap gerekmez (anonim giriş).
+- 7 ödül kategorisi: Kaydırma Kralı, Haftanın Yıldızı, Şimşek Parmak, Maratoncu, Oturum Canavarı, Rekor Gün, Zen Ustası
+
+## Kurulum
+
+1. Releases'tan `ShortsSayaci.apk` dosyasını indirip kur.
+   - Play Protect engellerse: Play Store → profil → Play Protect → ⚙️ → "Uygulamaları tara"yı kurulum süresince kapat.
+2. Uygulamayı aç ve **Erişilebilirlik ayarlarını aç**'a bas. *Shorts Sayacı*'nı etkinleştir.
+   - Gri/kilitliyse önce açmayı dene, sonra **Ayarlar → Uygulamalar → Shorts Sayacı → ⋮ → Kısıtlanmış ayarlara izin ver**.
+3. Güncellemeleri eski sürümü silmeden üstüne kur, verilerin korunur.
 
 ## Nasıl çalışır
 
-- Android'in **AccessibilityService** API'siyle sadece `TYPE_VIEW_SCROLLED` olaylarını dinler. Ekran içeriği kaydedilmez.
-- Ekranı kaplayan dikey listede kaydırma durunca (~220 ms), o anki video sırası ile önceki sıra arasındaki fark sayılır.
-  - Art arda hızlı kaydırmalar toplu olarak sayılır, kaçmaz.
-  - Yarıda bırakılan kaydırma sayılmaz.
-- Veriler sadece telefonda tutulur (SharedPreferences).
+- Android'in **AccessibilityService** API'siyle sadece kaydırma olaylarını dinler. Ekran içeriği kaydedilmez.
+- Ekranı kaplayan dikey listede kaydırma durunca o anki video sırası ile önceki sıra arasındaki fark sayılır.
+- İstatistikler sadece telefonda tutulur. Sıralamaya sadece özet gider (Firebase Firestore).
 
 ## Yanlış sayıyorsa
 
-Uygulamada **Hata ayıklama günlüğü**nü aç, Reels/Shorts'ta birkaç kez kaydır. Günlükteki satırları (`id=... from=... to=...`) kopyalayıp gönder, filtreler o satırlara göre ayarlanır.
+Ayarlardan **Hata ayıklama günlüğü**nü aç, Reels/Shorts'ta birkaç kez kaydır ve günlükteki satırları gönder.
 
 ## Derleme
 
-Her `main` push'unda GitHub Actions APK'yı derler ve yeni bir Release olarak yayınlar.
+Her `main` push'unda GitHub Actions APK'yı derler ve Releases'a yeni sürüm olarak koyar (`.github/workflows/build.yml`).
+Sunucu kuralları `firestore.rules` dosyasında. Uçtan uca sunucu testi için Actions sekmesinden **Sunucu testi**'ni çalıştırabilirsin.

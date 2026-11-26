@@ -34,11 +34,19 @@ jobs:
           name: ShortsSayaci
           path: ShortsSayaci.apk
 
+      - name: Sürüm notlarını hazırla
+        run: |
+          VER=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          echo "VER=$VER" >> $GITHUB_ENV
+          # CHANGELOG.md'deki en üstteki sürüm bölümünü al
+          awk '/^## /{n++} n==1' CHANGELOG.md | tail -n +2 > notes.md
+          printf '\n---\n📥 Telefondan aşağıdaki **ShortsSayaci.apk** dosyasına dokunup indir ve eskisinin üstüne kur (veriler korunur).\n' >> notes.md
+
       - name: Release oluştur (telefondan kolay indirme için)
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
-          name: Shorts Sayacı (derleme ${{ github.run_number }})
-          body: "Telefondan aşağıdaki **ShortsSayaci.apk** dosyasına dokunup indir ve kur."
+          name: Shorts Sayacı v${{ env.VER }} (derleme ${{ github.run_number }})
+          body_path: notes.md
           files: ShortsSayaci.apk
           make_latest: true
