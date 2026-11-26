@@ -1,6 +1,7 @@
 package com.med.shortscounter
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.text.InputFilter
 import android.text.InputType
 import android.view.Gravity
@@ -17,6 +18,9 @@ class LeaderboardPage(private val act: Activity, private val ui: Ui) {
     val root: LinearLayout = ui.vbox()
 
     private lateinit var nameInput: EditText
+    private lateinit var nameNote: TextView
+    private lateinit var nameLocked: LinearLayout
+    private lateinit var nameLockedText: TextView
     private lateinit var syncBtn: TextView
     private lateinit var status: TextView
     private lateinit var awardsBox: LinearLayout
@@ -62,15 +66,38 @@ class LeaderboardPage(private val act: Activity, private val ui: Ui) {
             setPadding(ui.dp(14), ui.dp(12), ui.dp(14), ui.dp(12))
         }
         card.addView(nameInput)
+        nameNote = ui.text(12f, C.AMBER, false, "⚠️ İsim bir kez seçilir, sonradan değiştirilemez.")
+            .apply { setPadding(0, ui.dp(6), 0, 0) }
+        card.addView(nameNote)
+
+        // Kilitliyken gösterilen isim satırı
+        nameLocked = ui.hbox().apply {
+            background = ui.round(C.CARD2, 14)
+            setPadding(ui.dp(14), ui.dp(12), ui.dp(14), ui.dp(12))
+        }
+        nameLockedText = ui.text(16f, C.TEXT, true, "")
+        nameLocked.addView(nameLockedText, ui.weight1())
+        nameLocked.addView(ui.text(12f, C.SUB, false, "🔒 kalıcı"))
+        card.addView(nameLocked)
 
         syncBtn = ui.button("Verilerimi gönder ve sıralamayı güncelle", C.TEXT, C.ACCENT).apply {
-            setOnClickListener { sync() }
+            setOnClickListener { onSyncClick() }
         }
         card.addView(syncBtn, ui.matchWrap(12))
 
         status = ui.text(12f, C.SUB, false, "").apply { setPadding(0, ui.dp(10), 0, 0) }
         card.addView(status)
         root.addView(card, ui.matchWrap(16))
+        updateNameUi()
+    }
+
+    private fun updateNameUi() {
+        val locked = Leaderboard.nameLocked(act)
+        nameInput.visibility = if (locked) View.GONE else View.VISIBLE
+        nameNote.visibility = if (locked) View.GONE else View.VISIBLE
+        nameLocked.visibility = if (locked) View.VISIBLE else View.GONE
+        nameLockedText.text = Leaderboard.name(act)
+        syncBtn.text = if (locked) "Verilerimi gönder ve sıralamayı güncelle" else "Sıralamaya katıl"
     }
 
     private fun buildAwards() {
@@ -110,29 +137,54 @@ class LeaderboardPage(private val act: Activity, private val ui: Ui) {
 
     // ---------------- Eylemler ----------------
 
-    private fun sync() {
+    private fun onSyncClick() {
         if (busy) return
-        val name = nameInput.text.toString().trim()
+        if (Leaderboard.nameLocked(act)) {
+            sync(Leaderboard.name(act), firstJoin = false)
+            return
+        }
+        val name = nameInput.text.toString().trim().replace(Regex("\\s+"), " ")
         if (name.length < 2) {
             status.setTextColor(C.AMBER)
             status.text = "Önce en az 2 karakterlik bir takma ad yaz."
             return
         }
-        Leaderboard.setName(act, name)
         (act.getSystemService(InputMethodManager::class.java))
             ?.hideSoftInputFromWindow(nameInput.windowToken, 0)
+        AlertDialog.Builder(act)
+            .setTitle("İsmin \"$name\" olacak")
+            .setMessage("Sıralamada bu isimle görüneceksin ve isim sonradan değiştirilemez. Onaylıyor musun?")
+            .setPositiveButton("Onayla") { _, _ -> sync(name, firstJoin = true) }
+            .setNegativeButton("Vazgeç", null)
+            .show()
+    }
+
+    private fun sync(name: String, firstJoin: Boolean) {
+        if (busy) return
         busy = true
         syncBtn.alpha = 0.5f
         status.setTextColor(C.SUB)
-        status.text = "Gönderiliyor…"
+        status.text = if (firstJoin) "İsim kontrol ediliyor…" else "Gönderiliyor…"
         Thread {
             try {
+                if (firstJoin) {
+                    // Aynı isim başka birinde var mı?
+                    val current = Leaderboard.fetchAll(act)
+                    if (Leaderboard.nameTaken(current, name, Leaderboard.myId(act))) {
+                        throw IllegalStateException("\"$name\" ismi alınmış, başka bir isim dene.")
+                    }
+                }
                 Leaderboard.upload(act, name)
+                if (firstJoin) {
+                    Leaderboard.setName(act, name)
+                    Leaderboard.lockName(act)
+                }
                 val list = Leaderboard.fetchAll(act)
                 act.runOnUiThread {
                     entries = list
                     busy = false
                     syncBtn.alpha = 1f
+                    updateNameUi()
                     render()
                 }
             } catch (e: Exception) {

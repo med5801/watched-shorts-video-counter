@@ -100,6 +100,20 @@ object Leaderboard {
 
     fun name(c: Context): String = prefs(c).getString("name", "") ?: ""
     fun setName(c: Context, n: String) = prefs(c).edit().putString("name", n).apply()
+
+    /** İsim bir kez sunucuya gönderildiyse kilitlenir, bir daha değiştirilemez. */
+    fun nameLocked(c: Context): Boolean {
+        val p = prefs(c)
+        if (p.getBoolean("name_locked", false)) return true
+        // Önceki sürümde zaten katılmış kullanıcılar
+        return p.getString("uid", null) != null && p.getLong("last_fetch", 0) > 0 && name(c).isNotBlank()
+    }
+
+    fun lockName(c: Context) = prefs(c).edit().putBoolean("name_locked", true).apply()
+
+    /** Bu isim başka bir kullanıcıda var mı? (büyük/küçük harf duyarsız) */
+    fun nameTaken(list: List<Entry>, name: String, myId: String?): Boolean =
+        list.any { it.id != myId && it.name.trim().equals(name.trim(), ignoreCase = true) }
     fun myId(c: Context): String? = prefs(c).getString("uid", null)
     fun lastFetch(c: Context): Long = prefs(c).getLong("last_fetch", 0)
 

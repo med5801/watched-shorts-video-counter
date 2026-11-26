@@ -39,6 +39,17 @@ jobs:
                 -H "Authorization: Bearer $TOK" -H 'Content-Type: application/json' -d "$BODY")
           echo "HTTP $C"; [ "$C" = 403 ] || exit 1
 
+          echo "== 3b) Kendi ismini değiştir (reddedilmeli)"
+          BODY2=$(echo "$BODY" | jq '.fields.name.stringValue = "baskaisim"')
+          C=$(curl -s -o /dev/null -w '%{http_code}' -X PATCH "$BASE/users/$UID_?key=$KEY" \
+                -H "Authorization: Bearer $TOK" -H 'Content-Type: application/json' -d "$BODY2")
+          echo "HTTP $C"; [ "$C" = 403 ] || { echo "UYARI: isim degisikligi kabul edildi - kurallar guncel degil"; ISIM_FAIL=1; }
+
+          echo "== 3c) Aynı isimle veri güncelle (izin verilmeli)"
+          C=$(curl -s -o /dev/null -w '%{http_code}' -X PATCH "$BASE/users/$UID_?key=$KEY" \
+                -H "Authorization: Bearer $TOK" -H 'Content-Type: application/json' -d "$BODY")
+          echo "HTTP $C"; [ "$C" = 200 ] || exit 1
+
           echo "== 4) Listeyi oku (girişsiz)"
           C=$(curl -s -o /tmp/l.json -w '%{http_code}' "$BASE/users?pageSize=300&key=$KEY")
           echo "HTTP $C, kayıt sayısı: $(jq '.documents | length' /tmp/l.json)"; [ "$C" = 200 ] || { cat /tmp/l.json; exit 1; }
@@ -46,4 +57,5 @@ jobs:
           echo "== 5) Test kaydını sil"
           C=$(curl -s -o /dev/null -w '%{http_code}' -X DELETE "$BASE/users/$UID_?key=$KEY" -H "Authorization: Bearer $TOK")
           echo "HTTP $C"; [ "$C" = 200 ] || exit 1
+          [ -z "$ISIM_FAIL" ] || exit 1
           echo "TÜM TESTLER GEÇTİ"
