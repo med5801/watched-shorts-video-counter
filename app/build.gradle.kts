@@ -11,8 +11,8 @@ android {
         applicationId = "com.med.shortscounter"
         minSdk = 26
         targetSdk = 35
-        versionCode = 5
-        versionName = "1.4"
+        versionCode = 6
+        versionName = "1.4.1"
     }
 
     // Sabit imza anahtarı: her derlemede aynı imza olsun ki

@@ -111,9 +111,6 @@ object Leaderboard {
 
     fun lockName(c: Context) = prefs(c).edit().putBoolean("name_locked", true).apply()
 
-    /** Bu isim başka bir kullanıcıda var mı? (büyük/küçük harf duyarsız) */
-    fun nameTaken(list: List<Entry>, name: String, myId: String?): Boolean =
-        list.any { it.id != myId && it.name.trim().equals(name.trim(), ignoreCase = true) }
     fun myId(c: Context): String? = prefs(c).getString("uid", null)
     fun lastFetch(c: Context): Long = prefs(c).getLong("last_fetch", 0)
 

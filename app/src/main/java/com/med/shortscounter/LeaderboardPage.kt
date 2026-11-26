@@ -164,16 +164,9 @@ class LeaderboardPage(private val act: Activity, private val ui: Ui) {
         busy = true
         syncBtn.alpha = 0.5f
         status.setTextColor(C.SUB)
-        status.text = if (firstJoin) "İsim kontrol ediliyor…" else "Gönderiliyor…"
+        status.text = "Gönderiliyor…"
         Thread {
             try {
-                if (firstJoin) {
-                    // Aynı isim başka birinde var mı?
-                    val current = Leaderboard.fetchAll(act)
-                    if (Leaderboard.nameTaken(current, name, Leaderboard.myId(act))) {
-                        throw IllegalStateException("\"$name\" ismi alınmış, başka bir isim dene.")
-                    }
-                }
                 Leaderboard.upload(act, name)
                 if (firstJoin) {
                     Leaderboard.setName(act, name)
